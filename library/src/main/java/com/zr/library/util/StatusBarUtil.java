@@ -108,6 +108,10 @@ public class StatusBarUtil {
             return;
         }
 
+        if (!StatusBarProxy.getInstance().checkCompatiblity()) {
+            return;
+        }
+
         ViewGroup contentView = ((ViewGroup) activity.findViewById(android.R.id.content));
         View rootView = contentView.getChildAt(0);
         if (rootView != null && rootView instanceof CoordinatorLayout) {
@@ -180,6 +184,10 @@ public class StatusBarUtil {
     public static void setColorForDrawerLayout(Activity activity, @ColorInt int color,
         int statusBarAlpha) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+            return;
+        }
+
+        if (!StatusBarProxy.getInstance().checkCompatiblity()) {
             return;
         }
 

@@ -69,6 +69,11 @@ public class StatusBarManager {
         StatusBarUtil.setColorForDrawerLayout(activity, color);
     }
 
+    /**
+     * 设置CoordinatorLayout沉浸
+     * @param activity
+     * @param color
+     */
     public void setColorForCoordinatorLayout(Activity activity, @ColorInt int color) {
         StatusBarUtil.setColorForCoordinatorLayout(activity, color);
     }
