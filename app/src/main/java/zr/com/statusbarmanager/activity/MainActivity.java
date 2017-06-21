@@ -13,7 +13,7 @@ import zr.com.statusbarmanager.base.BaseActivity;
 
 public class MainActivity extends BaseActivity implements View.OnClickListener {
 
-    private Button mNormalButton, mDrawerLayoutButton, mCoordinatorLayoutButton;
+    private Button mNormalButton, mDrawerLayoutButton, mCoordinatorLayoutButton, mRedButton, mBlueButton, mTransparentButton;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -29,12 +29,18 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         mNormalButton = (Button) findViewById(R.id.btn_normal);
         mDrawerLayoutButton = (Button) findViewById(R.id.btn_drawer_layout);
         mCoordinatorLayoutButton = (Button) findViewById(R.id.btn_coordinator_layout);
+        mRedButton = (Button) findViewById(R.id.btn_red);
+        mBlueButton = (Button) findViewById(R.id.btn_blue);
+        mTransparentButton = (Button) findViewById(R.id.btn_transparent);
     }
 
     private void setListener() {
         mNormalButton.setOnClickListener(this);
         mDrawerLayoutButton.setOnClickListener(this);
         mCoordinatorLayoutButton.setOnClickListener(this);
+        mRedButton.setOnClickListener(this);
+        mBlueButton.setOnClickListener(this);
+        mTransparentButton.setOnClickListener(this);
     }
 
     @Override
@@ -55,6 +61,18 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
             case R.id.btn_coordinator_layout:
                 CoordinatorLayoutActivity.launch(MainActivity.this);
+                break;
+
+            case R.id.btn_red:
+                StatusBarManager.getsInstance().setColor(MainActivity.this, Color.RED);
+                break;
+
+            case R.id.btn_blue:
+                StatusBarManager.getsInstance().setColor(MainActivity.this, Color.BLUE);
+                break;
+
+            case R.id.btn_transparent:
+                StatusBarManager.getsInstance().setColor(MainActivity.this, Color.TRANSPARENT);
                 break;
         }
     }
