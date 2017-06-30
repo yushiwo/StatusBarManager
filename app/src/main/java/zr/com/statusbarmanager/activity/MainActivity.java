@@ -1,22 +1,18 @@
 package zr.com.statusbarmanager.activity;
 
-import android.graphics.Color;
+import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 
-import com.zr.library.StatusBarManager;
-
 import zr.com.statusbarmanager.R;
-import zr.com.statusbarmanager.base.BaseActivity;
 
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-public class MainActivity extends BaseActivity implements View.OnClickListener {
-
-    private Button mNormalButton, mDrawerLayoutButton, mRedButton, mBlueButton, mTransparentButton;
+    private Button mNormalButton, mViewpagerButton;
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -27,23 +23,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private void initView() {
         mNormalButton = (Button) findViewById(R.id.btn_normal);
-        mDrawerLayoutButton = (Button) findViewById(R.id.btn_drawer_layout);
-        mRedButton = (Button) findViewById(R.id.btn_red);
-        mBlueButton = (Button) findViewById(R.id.btn_blue);
-        mTransparentButton = (Button) findViewById(R.id.btn_transparent);
+        mViewpagerButton = (Button) findViewById(R.id.btn_view_pager);
     }
 
     private void setListener() {
         mNormalButton.setOnClickListener(this);
-        mDrawerLayoutButton.setOnClickListener(this);
-        mRedButton.setOnClickListener(this);
-        mBlueButton.setOnClickListener(this);
-        mTransparentButton.setOnClickListener(this);
-    }
-
-    @Override
-    protected void initStatusBar() {
-        StatusBarManager.getsInstance().setColor(MainActivity.this, Color.BLUE);
+        mViewpagerButton.setOnClickListener(this);
     }
 
     @Override
@@ -53,20 +38,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 NormalActivity.launch(MainActivity.this);
                 break;
 
-            case R.id.btn_drawer_layout:
-                DrawerLayoutActivity.launch(MainActivity.this);
-                break;
-
-            case R.id.btn_red:
-                StatusBarManager.getsInstance().setColor(MainActivity.this, Color.RED);
-                break;
-
-            case R.id.btn_blue:
-                StatusBarManager.getsInstance().setColor(MainActivity.this, Color.BLUE);
-                break;
-
-            case R.id.btn_transparent:
-                StatusBarManager.getsInstance().setColor(MainActivity.this, Color.TRANSPARENT);
+            case R.id.btn_view_pager:
+                ViewpagerActivity.launch(MainActivity.this);
                 break;
         }
     }

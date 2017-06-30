@@ -11,7 +11,9 @@ import android.support.v4.widget.DrawerLayout;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 
 import com.zr.library.proxy.StatusBarProxy;
 import com.zr.library.R;
@@ -103,6 +105,37 @@ public class StatusBarUtil {
     }
 
 
+//    public static void setColorForDrawerLayout(Activity activity, int color, int statusBarAlpha) {
+//
+//        ViewGroup contentView = ((ViewGroup) activity.findViewById(android.R.id.content));
+//        View rootView = contentView.getChildAt(0);
+//        if (rootView != null && rootView instanceof DrawerLayout) {
+//            final DrawerLayout drawerLayout = (DrawerLayout) rootView;
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+//                activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+//                // 生成一个状态栏大小的矩形
+//                View statusBarView = createStatusBarView(activity, color);
+//                // 添加 statusBarView 到布局中
+//                ViewGroup contentLayout = (ViewGroup) drawerLayout.getChildAt(0);
+//                contentLayout.addView(statusBarView, 0);
+//                // 内容布局不是 LinearLayout 时,设置padding top
+//                if (!(contentLayout instanceof LinearLayout) || !(contentLayout instanceof FrameLayout) || !(contentLayout instanceof RelativeLayout)) {
+//                    if (contentLayout.getChildAt(1) != null) {
+//                        contentLayout.getChildAt(1).setPadding(0, getStatusBarHeight(activity), 0, 0);
+//                    }
+//                }
+//                // 设置属性
+//                ViewGroup drawer = (ViewGroup) drawerLayout.getChildAt(1);
+//                drawerLayout.setFitsSystemWindows(false);
+//                contentLayout.setFitsSystemWindows(false);
+//                contentLayout.setClipToPadding(true);
+//                drawer.setFitsSystemWindows(false);
+//            }
+//        }
+//
+//
+//    }
+
     /**
      * 为DrawerLayout 布局设置状态栏变色
      *
@@ -110,8 +143,7 @@ public class StatusBarUtil {
      * @param color          状态栏颜色值
      * @param statusBarAlpha 状态栏透明度
      */
-    public static void setColorForDrawerLayout(Activity activity, @ColorInt int color,
-        int statusBarAlpha) {
+    public static void setColorForDrawerLayout(Activity activity, @ColorInt int color, int statusBarAlpha) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
             return;
         }
@@ -145,14 +177,15 @@ public class StatusBarUtil {
                 contentLayout.addView(createStatusBarView(activity, color), 0);
             }
             // 内容布局不是 LinearLayout 时,设置padding top
-            if (!(contentLayout instanceof LinearLayout) && contentLayout.getChildAt(1) != null) {
-                contentLayout.getChildAt(1)
-                        .setPadding(contentLayout.getPaddingLeft(), getStatusBarHeight(activity) + contentLayout.getPaddingTop(),
-                                contentLayout.getPaddingRight(), contentLayout.getPaddingBottom());
+            if (!(contentLayout instanceof LinearLayout) || !(contentLayout instanceof FrameLayout) || !(contentLayout instanceof RelativeLayout)) {
+                if (contentLayout.getChildAt(1) != null) {
+                    contentLayout.getChildAt(1)
+                            .setPadding(contentLayout.getPaddingLeft(), getStatusBarHeight(activity) + contentLayout.getPaddingTop(),
+                                    contentLayout.getPaddingRight(), contentLayout.getPaddingBottom());
+                }
             }
             // 设置属性
             setDrawerLayoutProperty(drawerLayout, contentLayout);
-            addTranslucentView(activity, statusBarAlpha);
         }
 
     }
@@ -302,7 +335,7 @@ public class StatusBarUtil {
      * @param context context
      * @return 状态栏高度
      */
-    private static int getStatusBarHeight(Context context) {
+    public static int getStatusBarHeight(Context context) {
         // 获得状态栏高度
         int resourceId = context.getResources().getIdentifier("status_bar_height", "dimen", "android");
         return context.getResources().getDimensionPixelSize(resourceId);
