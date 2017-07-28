@@ -301,14 +301,123 @@ private void updateColorViewInt(final ColorViewState state, int sysUiVis, int co
 + 部分机子（大多数是4.4~5.0的机子）本身就是不支持状态栏着色效果
 + 5.0以上的机子，不支持常规操作方式，需要采用特殊方式处理（4.4～5.0的处理方式）
 
+当出现如上所述的问题时，我们的处理方式一般是这样（不侵入修改第三方库）：
 
+1. 实现一个兼容性工具类，获取本机信息，判断相关兼容性问题
+2. 在业务代码中判断兼容性条件，分情况判断是否设置状态栏颜色。支持状态栏设置的，还需要分情况判断使用哪种方式设置。
+
+```
+if (RomUtil.isCompactSystemVersionForImmersion()) {
+
+    if (RomUtil.isCompactRomForImmersion()) {
+        StatusBarUtils.setColor(ActivityMain.this, Color.TRANSPARENT);
+    } else {
+        setTranslucentStatus(true);
+        tintManager = new SystemBarTintManager(this);
+        tintManager.setStatusBarTintEnabled(true);
+        tintManager.setStatusBarTintColor(Color.TRANSPARENT);//通知栏所需颜色
+    }
+
+}
+```
+
+看上面实现，会发现代码逻辑很繁琐。而且当一个新的地方需要设置状态栏颜色时，相应的这一坨代码都需要再写一遍。显然，这种方式不是太友好，当然，我们可以将条件判断都修改到库里面，直接修改库源码。但是这又带来另一个问题，当库有更新了，升级库就很麻烦。
+
+考虑到上述的一些问题，所以在我们设计的库中，将兼容性判断的相关细节隐藏在库中，使用的时候只需调用相关方法即可。库对外提供了兼容性配置接口，用户可以自由配置，决定是否需要设置状态栏颜色。即实现对库无侵入的修改，即使升级了库，相应的兼容性配置信息也不会丢失。整个库设计的UML图如下所示：
+
+![库设计的UML图]()
+
+要使用库也非常简单，只需要如下几步：
+
++ 在build.gradle中导入库
+
+```
+compile 'com.zr.statusbarmanager:library:1.0.0-beta'
+```
+
++ 实现ICompatConfig接口，重写方法实现兼容性配置。接口主要提供了两个检查配置的方法，分别如下所示：
+
+```
+ /**
+ * 检测是否支持状态栏设置
+ * @return
+ */
+boolean checkCompatiblity();
+
+/**
+ * 检测是否需要特殊设置的Rom
+ * @return
+ */
+boolean checkSpecialRom();
+```
+当然库也提供了一个默认的实现`DefaultStatusBarCompatConfig `，这也是我们在项目开发过程中根据兼容性测试发现的一些问题进行的配置，绝对很有参考价值。如果用户自己实现配置，只需要如下设置：
+
+```
+public class StatusBarCompactConfig implements ICompatConfig {
+    @Override
+    public boolean checkCompatiblity() {
+        if (CompatUtil.checkCompatiblity()) {
+            // TODO: 17/7/28 自定义的兼容性判断逻辑
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean checkSpecialRom() {
+        if (CompatUtil.checkSpecialRom()) {
+            return true;
+        } else {
+            // TODO: 17/7/28 自定义特殊ROM判断逻辑
+        }
+    }
+}
+```
+
+其中`CompatUtil`是库提供的兼容性判断工具类，若用户在使用库的时候需要带上库已经提供的相关兼容性信息，可以调用工具类的相关方法。如果不需要，也可以完全自己实现。
+
++ 在Application中初始化库的设置
+
+```
+StatusBarManager.getsInstance().init(new DefaultStatusBarCompatConfig());
+```
+
++ 使用库设置状态栏颜色
+
+```
+StatusBarManager.getsInstance().setColor(this, Color.TRANSPARENT);
+```
 
 
 ### 五、那些坑
-+ 设置不成功回滚（oppo不成功的例子）
-+ 尽量覆盖机型的兼容性测试
-+ 为什么要设置systemuivisibility
++ 颜色设置不成功回滚（oppo不成功的例子）
+
+虽然进行了比较全的兼容性测试，但是还是难保在所以的机子上都能实现颜色设置。这会导致一个问题，就是在这些不支持的手机上，用户使用的视觉和体验都会降低。之前想到的一种方案是先设置颜色，然后在页面打开后，进行应用内截屏（不需要root），取截屏图片状态栏部分的颜色与设置的颜色比对，如果颜色一致说明设置成功，否则就是设置失败。此时可以弹框提示用户进行回滚，将设置失败的影响降到最低。
+初看这个方案还是很可行的，但是实际测试的时候，发现此方案是不行的。如在一款oppo的机子上，我们测试是正确实现了状态栏的设置，但是实际的视觉效果并没有变成设置的颜色。初步估计是有些ROM对状态栏进行了定制，在状态栏相同的位置覆盖了一个相同的view，设置的状态栏在view的下方，效果看不到。
+
 + windowTranslucentStatus与statusBarColor不能同时生效
+
+Android4.4的时候，加了个windowTranslucentStatus属性，实现了状态栏导航栏半透明效果，而Android5.0之后以上状态栏、导航栏支持颜色随意设定，所以，5.0之后一般不使用需要使用该属性，而且设置状态栏颜色与windowTranslucentStatus是互斥的。所以，默认情况下android:windowTranslucentStatus是false。也就是说：‘windowTranslucentStatus’和‘windowTranslucentNavigation’设置为true后就再设置‘statusBarColor’和‘navigationBarColor’就没有效果了
+
+```
+boolean show = state.present
+                && (color & Color.BLACK) != 0
+                && ((mWindow.getAttributes().flags & state.translucentFlag) == 0  || force);
+```
+可以看到，添加背景View有一个必要条件
+
+```
+(mWindow.getAttributes().flags & state.translucentFlag) == 0 
+```
+也就是说一旦设置了
+
+```
+ <item name="android:windowTranslucentStatus">true</item>
+```
+相应的状态栏或者导航栏的颜色设置就不在生效。不过它并不影响fitSystemWindow的逻辑。
+
++ 5.0系统以上手动设置SystemUiVisibility属性
+在5.0以上的机子若是不设置
 
 ### 六、总结
 在Android项目开发过程中，免不了要和系统栏打交道。以上是作者根据平时项目开发经验、并结合网上查阅的资料对状态栏相关设置进行的总结。希望对大家有帮助，欢迎大家交流讨论～
