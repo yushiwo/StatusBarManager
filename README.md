@@ -296,12 +296,15 @@ private void updateColorViewInt(final ColorViewState state, int sysUiVis, int co
 先看下关键点1，这里是根据SystemUI的配置决定是否显示状态栏背景颜色。如果状态栏都不显示，那就没必要显示背景色了。再看关键点2，如果状态栏显示，但背景是透明色，也没必要添加背景颜色，即不满足(color & Color.BLACK) != 0。然后，看一下translucentFlag，默认情况下，状态栏背景色与translucent半透明效果互斥，半透明就统一用半透明颜色，不会再添加额外颜色。最后，再来看关键点3，其实很简单，就是往DecorView上添加一个View，理论上DecorView也是一个FrameLayout，所以最终的实现就是在FrameLayout添加一个有背景色的View。
 
 ### 四、100分状态栏着色实践
-集成、使用、特殊机型处理
+目前网上封装好的状态栏设置工具有不少，用得比较多的是[StatusBarUtil](https://github.com/laobie/StatusBarUtil)，还有已经废弃的[SystemBarTint](https://github.com/jgilfelt/SystemBarTint)。但是有个问题，无论哪个工具库，都不敢保证能够百分百实现状态栏着色的效果。因此，兼容性问题是一直存在的。通过实践分析总结，兼容性问题主要有两类：
+
++ 部分机子（大多数是4.4~5.0的机子）本身就是不支持状态栏着色效果
++ 5.0以上的机子，不支持常规操作方式，需要采用特殊方式处理（4.4～5.0的处理方式）
+
 
 
 
 ### 五、那些坑
-+ 配置文件
 + 设置不成功回滚（oppo不成功的例子）
 + 尽量覆盖机型的兼容性测试
 + 为什么要设置systemuivisibility
