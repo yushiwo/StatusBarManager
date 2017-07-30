@@ -321,7 +321,7 @@ if (RomUtil.isCompactSystemVersionForImmersion()) {
 }
 ```
 
-看上面实现，会发现代码逻辑很繁琐。而且当一个新的地方需要设置状态栏颜色时，相应的这一坨代码都需要再写一遍。显然，这种方式不是太友好，当然，我们可以将条件判断都修改到库里面，直接修改库源码。但是这又带来另一个问题，当库有更新了，升级库就很麻烦。
+看上面实现，会发现代码逻辑很繁琐。而且当一个新的地方需要设置状态栏颜色时，相应的这一堆代码都需要再写一遍。显然，这种方式不是太友好，当然，我们可以将条件判断都修改到库里面，直接修改库源码。但是这又带来另一个问题，当库有更新了，升级库就很麻烦。
 
 考虑到上述的一些问题，所以在我们设计的库中，将兼容性判断的相关细节隐藏在库中，使用的时候只需调用相关方法即可。库对外提供了兼容性配置接口，用户可以自由配置，决定是否需要设置状态栏颜色。即实现对库无侵入的修改，即使升级了库，相应的兼容性配置信息也不会丢失。整个库设计的UML图如下所示：
 
@@ -350,6 +350,8 @@ boolean checkCompatiblity();
  */
 boolean checkSpecialRom();
 ```
+两个方法，前一个好理解，就是用来判断是否支持设置状态栏颜色；后一个方法比较特殊。在实际测试过程中，有一款华为手机，搭载EMUI 3.1系统，对应Android系统版本5.1。我们发现用常规直接设置状态栏颜色的方式设置是不生效的，但是用5.0以下系统设置状态栏颜色方式设置就可以生效。所以，次方法就是为了此类特殊ROM而定义的。
+
 当然库也提供了一个默认的实现`DefaultStatusBarCompatConfig `，这也是我们在项目开发过程中根据兼容性测试发现的一些问题进行的配置，绝对很有参考价值。如果用户自己实现配置，只需要如下设置：
 
 ```
@@ -392,8 +394,8 @@ StatusBarManager.getsInstance().setColor(this, Color.TRANSPARENT);
 ### 五、那些坑
 + 颜色设置不成功回滚（oppo不成功的例子）
 
-虽然进行了比较全的兼容性测试，但是还是难保在所以的机子上都能实现颜色设置。这会导致一个问题，就是在这些不支持的手机上，用户使用的视觉和体验都会降低。之前想到的一种方案是先设置颜色，然后在页面打开后，进行应用内截屏（不需要root），取截屏图片状态栏部分的颜色与设置的颜色比对，如果颜色一致说明设置成功，否则就是设置失败。此时可以弹框提示用户进行回滚，将设置失败的影响降到最低。
-初看这个方案还是很可行的，但是实际测试的时候，发现此方案是不行的。如在一款oppo的机子上，我们测试是正确实现了状态栏的设置，但是实际的视觉效果并没有变成设置的颜色。初步估计是有些ROM对状态栏进行了定制，在状态栏相同的位置覆盖了一个相同的view，设置的状态栏在view的下方，效果看不到。
+虽然进行了比较全的兼容性测试，但是还是难保在所以的机子上都能实现颜色设置。这会导致一个问题，就是在这些不支持的手机上，用户使用的视觉和体验都会降低。于是想到的一种方案是先设置颜色，然后在页面打开后，进行应用内截屏（不需要root权限的截屏），取截屏图片状态栏部分的颜色与设置的颜色比对，如果颜色一致说明设置成功，否则就是设置失败。如果设置失败的话，此时可以弹框提示用户进行回滚，将设置失败的影响降到最低。
+选定方案后，开始验证。实际测试的时候，发现此方案是不行的。如在一款oppo的机子上，我们测试是正确实现了状态栏的设置，但是实际的视觉效果并没有变成设置的颜色。初步估计是部分ROM对状态栏进行了定制，在状态栏相同的位置覆盖了一个相同的view，设置的状态栏在view的下方，效果看不到。
 
 + windowTranslucentStatus与statusBarColor不能同时生效
 
@@ -416,10 +418,38 @@ boolean show = state.present
 ```
 相应的状态栏或者导航栏的颜色设置就不在生效。不过它并不影响fitSystemWindow的逻辑。
 
-+ 5.0系统以上手动设置SystemUiVisibility属性
-在5.0以上的机子若是不设置
++ 设置SystemUiVisibility属性
 
-### 六、总结
+```
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+    activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+    activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+    activity.getWindow().setStatusBarColor(calculateStatusColor(color, statusBarAlpha));
+} else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+    activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+	...
+}
+```
+以上代码设置状态栏颜色，当设置状态栏透明时，我们发现一个现象。在5.0之前的机子上，内容可以延伸到状态栏下面；而在5.0以上的机子上，底部会有一块空出的view，如图所示。
+
+![4.4和5.0效果图展示]()
+
+为什么会导致这个现象呢？这里要从`WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS`这个属性说起。在5.0之前系统上，该属性设置为true，5.0及之后系统，属性设置为false。查看WindowManager中该属性的注释，发现如下一段话：
+
+```
+<p>When this flag is enabled for a window, it automatically sets
+ * the system UI visibility flags {@link View#SYSTEM_UI_FLAG_LAYOUT_STABLE} and
+ * {@link View#SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN}.</p>
+```
+
+原来设置`FLAG_TRANSLUCENT_STATUS`为true之后，会自动设置`SYSTEM_UI_FLAG_LAYOUT_STABLE`和`SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN`的系统UI属性，通过前面沉浸设置，可以知道这就是实现内容显示到状态栏下的设置。因为5.0以上系统`FLAG_TRANSLUCENT_STATUS`为false，当然内容也将不会显示到导航栏下。所以，在5.0的机子上，需要加上此段设置代码：
+
+```
+activity.getWindow().getDecorView().set(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+```
+
+
+### 六、结束
 在Android项目开发过程中，免不了要和系统栏打交道。以上是作者根据平时项目开发经验、并结合网上查阅的资料对状态栏相关设置进行的总结。希望对大家有帮助，欢迎大家交流讨论～
 
 
@@ -438,3 +468,4 @@ boolean show = state.present
 12. [沉浸式状态栏](http://www.jianshu.com/p/d147608dc27b)
 13. [由沉浸式状态栏引发的血案](http://www.jianshu.com/p/140be70b84cd?utm_source=tuicool&utm_medium=referral)
 14. [Android开发：Translucent System Bar 的最佳实践](http://www.jianshu.com/p/0acc12c29c1b)
+15. [全屏、沉浸式、fitSystemWindow使用及原理分析：全方位控制“沉浸式”的实现](https://juejin.im/post/5948ff8fa0bb9f006bf5da29)
