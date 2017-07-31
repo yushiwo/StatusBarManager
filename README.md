@@ -14,40 +14,19 @@
 ### 二、如何沉浸
 从3.x版本开始, 系统DecorView提供了setSystemUiVisibility方法, 可以通过Flag改更改所谓SystemUI的属性。各个设置的参数含义如下所示：
 
-```
-View.SYSTEM_UI_FLAG_VISIBLE Level 14  
-默认标记
+参数 | api版本 | 含义
+---- | --- | ---
+View.SYSTEM\_UI\_FLAG_VISIBLE | 14 | 默认标记
+View.SYSTEM\_UI\_FLAG\_LOW\_PROFILE | 14 | 低功耗模式, 会隐藏状态栏图标, 在4.0上可以实现全屏
+View.SYSTEM\_UI\_FLAG\_LAYOUT\_STABLE | 16 | 保持整个View稳定, 常跟bar 悬浮, 隐藏共用, 使View不会因为SystemUI的变化而做layout
+View.SYSTEM\_UI\_FLAG\_FULLSCREEN | 16 | 状态栏隐藏
+View.SYSTEM\_UI\_FLAG\_LAYOUT\_FULLSCREEN | 16 | 状态栏上浮于Activity
+View.SYSTEM\_UI\_FLAG\_HIDE\_NAVIGATION | 14 | 隐藏导航栏
+View.SYSTEM\_UI\_FLAG\_LAYOUT\_HIDE_NAVIGATION | 16 | 导航栏上浮于Activity
+View.SYSTEM\_UI\_FLAG\_IMMERSIVE | 19 | Kitkat新加入的Flag, 沉浸模式, 可以隐藏掉status跟navigation bar, 并且在第一次会弹泡提醒, 它会覆盖掉之前两个隐藏bar的标记, 并且在bar出现的位置滑动可以呼出bar
+View.SYSTEM\_UI\_FLAG\_IMMERSIVE\_STIKY | 19 | 与上面唯一的区别是, 呼出隐藏的bar后会自动再隐藏掉
 
-View.SYSTEM_UI_FLAG_LOW_PROFILE Level 14  
-低功耗模式, 会隐藏状态栏图标, 在4.0上可以实现全屏
-
-View.SYSTEM_UI_FLAG_LAYOUT_STABLE Level 16  
-保持整个View稳定, 常跟bar 悬浮, 隐藏共用, 使View不会因为SystemUI的变化而做layout
-
-View.SYSTEM_UI_FLAG_FULLSCREEN Level 16  
-状态栏隐藏
-
-View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN Level 16  
-状态栏上浮于Activity
-
-View.SYSTEM_UI_FLAG_HIDE_NAVIGATION Level 14  
-隐藏导航栏, 
-=========================================================================
-4.0 - 4.3如果使用这个属性,将会导致在下一次touch时候自动show出status跟navigation bar,源于系统clear掉其所有的状态
-=========================================================================
-
-View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION Level 16  
-导航栏上浮于Activity
-
-View.SYSTEM_UI_FLAG_IMMERSIVE Level 19  
-Kitkat新加入的Flag, 沉浸模式, 可以隐藏掉status跟navigation bar, 并且在第一次会弹泡提醒, 它会覆盖掉之前两个隐藏bar的标记, 并且在bar出现的位置滑动可以呼出bar
-
-View.SYSTEM_UI_FLAG_IMMERSIVE_STIKY Level 19  
-与上面唯一的区别是, 呼出隐藏的bar后会自动再隐藏掉
-
-```
-
-综上所述，要实现全屏沉浸，我们只需如此设置即可：
+综上所述，要实现全屏沉浸模式，只需如下设置即可：
 
 ```
 //Hide
@@ -60,7 +39,7 @@ getWindow().getDecorView().setSystemUiVisibility(
                         | View.SYSTEM_UI_FLAG_IMMERSIVE);
 ```  
 
-![放一张全屏沉浸的图]()
+![沉浸模式](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/569167307E354D618B404E2396B47B6C/10748)
 
 ### 三、如何着色
 
@@ -133,10 +112,10 @@ getWindow().getDecorView().setSystemUiVisibility(
 </LinearLayout>
 ```
 如此可以得到效果如下所示  
-![实现透明效果的图]()
+![实现透明效果的图](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/WEBRESOURCE2a3252adec27ed2a750c870eceeba990/10762)
 
 那么，为什么要将android:fitsSystemWindows设置为true呢？如果不设置会怎么样？我们可以来测试下，下图是不设置（默认为false）的效果。可见内容跑到了状态栏的下面，如果状态栏不是透明的，内容就被覆盖了。所以，最直观的一点我们可以发现，设置了android:fitsSystemWindows为true，可以让内容不会顶到状态栏的下面。文章[Android沉浸式状态栏实现](http://ks.netease.com/blog?id=6650)对`itsSystemWindows`已经做了详细的分析，大家有兴趣可以看看。
-![android:fitsSystemWindows为false的图]()
+![android:fitsSystemWindows为false的图](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/WEBRESOURCEa06f6e44538f6c2179bc69b4b4e80f2c/10761)
 
 接着上面的问题，既然我们实现透明状态栏效果的页面都需要设置`fitsSystemWindows`属性，所以我们想到了一种方便的方法，在theme中加上如下的android:fitsSystemWindows设置：
 
@@ -145,7 +124,7 @@ getWindow().getDecorView().setSystemUiVisibility(
 ```
 运行发现真的可以，显示的内容也没有和状态栏重叠。但是，当我们显示一个toast的时候，发现问题了。
 
-![toast错位的图片]()
+![toast错位的图片](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/87996F0234A7468B94C40DB499250836/10751)
 
 如图所示，Toast打印出来的文字都向上便宜了。原因是因为我们是在Theme中设置的fitsSystemWindows属性，会影响使用了该theme的activity或application的行为，造成依附于Application Window的Window（比如Toast）错位。针对Toast错位的问题，解决方法也简单，就是**使用应用级别的上下文**：
 
@@ -168,7 +147,6 @@ activity.getWindow().setStatusBarColor(color);
 
 而对于系统是4.4到5.0之前的机子，要设置状态栏的颜色就稍微要繁琐一点了。首先，需要设置页面状态栏为透明；然后，新建一个和状态栏高度一致的view，填充到DecorView上；最后，通过设置这个填充view的颜色，我们就能实现类似对状态栏颜色进行控制的效果了。
 
-![看情况是否需要示意图]()
 
 ```
 // 设置透明
@@ -432,7 +410,7 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 ```
 以上代码设置状态栏颜色，当设置状态栏透明时，我们发现一个现象。在5.0之前的机子上，内容可以延伸到状态栏下面；而在5.0以上的机子上，底部会有一块空出的view，如图所示。
 
-![4.4和5.0效果图展示]()
+![4.4和5.0效果图展示](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/577AF360A4E84627A7E72F7F8287B2ED/10764)
 
 为什么会导致这个现象呢？这里要从`WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS`这个属性说起。在5.0之前系统上，该属性设置为true，5.0及之后系统，属性设置为false。查看WindowManager中该属性的注释，发现如下一段话：
 
