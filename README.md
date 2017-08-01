@@ -1,15 +1,16 @@
 ### 前言
 首先请大家看几张图：
 ![](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/WEBRESOURCEbc97e05cb264dd785a924d711d85b612/10733)
-以上的效果，一般我们统称为沉浸式状态栏。其实，这是叫法不是很准确，而且也没有沉浸式状态栏这一说，只有沉浸模式。以上几种情况，可以称为透明状态栏或者状态栏着色。
+以上的效果，一般我们统称为沉浸式状态栏。其实，这种叫法不是很准确，而且也没有沉浸式状态栏这一说，只有沉浸模式。以上几种情况，可以称为透明状态栏或者状态栏着色。
 
 ### 一、两种状态
-进行Android开发的我们都应该知道Translucent Bar（透明栏）和Immersive Mode（沉浸模式），两种方式都会对状态栏进行设置。两者的区别，比较直观的一点，就是体现在屏幕中的View可点击区域，如下所示。
+进行Android开发时，有两种方式都会对状态栏进行设置：Translucent Bar（透明栏）和Immersive Mode（沉浸模式）。两者的区别，比较直观的一点，就是体现在屏幕中的View可点击区域，如下所示。
 
 + 沉浸模式  
-隐藏status bar（状态栏）,使屏幕全屏，让Activity接收所有的（整个屏幕的）触摸事件。如上面所示的直播全屏播放。
+隐藏status bar（状态栏）,使屏幕全屏，让Activity接收所有的（整个屏幕的）触摸事件。
+
 + 状态栏着色  
-设置状态栏颜色，布局侵入状态栏的后面，必须启用`fitsSystemWindows`属性来调整布局才不至于被状态栏覆盖。如透明状态栏、与titlebar颜色一致的状态栏。
+设置状态栏颜色，状态栏部分不接收处理触摸事件。布局侵入状态栏的后面，必须启用`fitsSystemWindows`属性来调整布局才不至于被状态栏覆盖。如透明状态栏、与titlebar颜色一致的状态栏，即如之前的图所示。
 
 ### 二、如何沉浸
 从3.x版本开始, 系统DecorView提供了setSystemUiVisibility方法, 可以通过Flag改更改所谓SystemUI的属性。各个设置的参数含义如下所示：
@@ -36,10 +37,14 @@ getWindow().getDecorView().setSystemUiVisibility(
                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE);
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STIKY);
 ```  
 
+实现沉浸效果如下图所示。左边是隐藏状态栏和导航栏的效果，整个屏幕都可以接收触摸反馈；右边图是滑动显示的状态栏和导航栏的效果，内容显示在系统栏的下方，显示一段时间后会自动隐藏。
+
 ![沉浸模式](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/569167307E354D618B404E2396B47B6C/10748)
+
+
 
 ### 三、如何着色
 
@@ -53,10 +58,10 @@ getWindow().getDecorView().setSystemUiVisibility(
 状态栏支持透明效果，但是系统不提供接口进行颜色设置（有办法，文章后面会介绍）。
 
 + 5.0以上  
-状态栏不仅支持透明效果，系统也提供接口对状态栏进行颜色设置。
+系统提供接口对状态栏进行任意颜色设置。
 
 #### 3.2 实现的两种方式
-##### 3.2.1 主题和布局设置（相关坑）
+##### 3.2.1 主题和布局设置
 1. 在values、values-v19、values-v21的style.xml都设置一个 Translucent System Bar 风格的Theme
 	+ values/style.xml
 	
@@ -70,6 +75,7 @@ getWindow().getDecorView().setSystemUiVisibility(
 	```
 	 <style name="ImageTranslucentTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
     </style>	
     ```
 	
@@ -78,7 +84,7 @@ getWindow().getDecorView().setSystemUiVisibility(
 	```
 	<style name="ImageTranslucentTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowTranslucentStatus">false</item>
-        <!--Android 5.x开始需要把颜色设置透明，否则导航栏会呈现系统默认的浅灰色-->
+        <item name="android:windowTranslucentNavigation">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
 	```
@@ -101,7 +107,7 @@ getWindow().getDecorView().setSystemUiVisibility(
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@mipmap/paperscan_guide_step_two_inside"
-
+    android:fitsSystemWindows="true"
     >
 
     <TextView
@@ -114,7 +120,7 @@ getWindow().getDecorView().setSystemUiVisibility(
 如此可以得到效果如下所示  
 ![实现透明效果的图](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/WEBRESOURCE2a3252adec27ed2a750c870eceeba990/10762)
 
-那么，为什么要将android:fitsSystemWindows设置为true呢？如果不设置会怎么样？我们可以来测试下，下图是不设置（默认为false）的效果。可见内容跑到了状态栏的下面，如果状态栏不是透明的，内容就被覆盖了。所以，最直观的一点我们可以发现，设置了android:fitsSystemWindows为true，可以让内容不会顶到状态栏的下面。文章[Android沉浸式状态栏实现](http://ks.netease.com/blog?id=6650)对`itsSystemWindows`已经做了详细的分析，大家有兴趣可以看看。
+那么，为什么要将android:fitsSystemWindows设置为true呢？如果不设置会怎么样？我们可以来测试下，下图是不设置（默认为false）的效果。可见内容跑到了状态栏的下面，被状态栏覆盖了。所以，最直观的一点我们可以发现，设置了android:fitsSystemWindows为true，可以让内容不会顶到状态栏的下面。文章[Android沉浸式状态栏实现](http://ks.netease.com/blog?id=6650)对`fitsSystemWindows`已经做了详细的分析，大家有兴趣可以看看。
 ![android:fitsSystemWindows为false的图](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/WEBRESOURCEa06f6e44538f6c2179bc69b4b4e80f2c/10761)
 
 接着上面的问题，既然我们实现透明状态栏效果的页面都需要设置`fitsSystemWindows`属性，所以我们想到了一种方便的方法，在theme中加上如下的android:fitsSystemWindows设置：
@@ -126,12 +132,14 @@ getWindow().getDecorView().setSystemUiVisibility(
 
 ![toast错位的图片](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/87996F0234A7468B94C40DB499250836/10751)
 
-如图所示，Toast打印出来的文字都向上便宜了。原因是因为我们是在Theme中设置的fitsSystemWindows属性，会影响使用了该theme的activity或application的行为，造成依附于Application Window的Window（比如Toast）错位。针对Toast错位的问题，解决方法也简单，就是**使用应用级别的上下文**：
+如图所示，Toast打印出来的文字都向上偏移了。原因是因为我们是在Theme中设置的fitsSystemWindows属性，会影响使用了该theme的activity或application的行为，造成依附于Application Window的Window（比如Toast）错位。针对Toast错位的问题，解决方法也简单，就是**使用应用级别的上下文**：
 
 ```
 Toast.makeText(getApplicationContext(),"toast sth...",Toast.LENGTH_SHORT).show();
 ```
 虽说Toast错误问题也是有方法可以解决，但是如果这样使用，不经意间会给我们的应用埋下很多坑。所以我的建议是：不要滥用，只在有需要的地方添加fitsSystemWindows属性。
+
+⚠️此处只是演示了透明状态栏的情况，若设置状态栏其它颜色，
 
 ##### 3.2.2 代码设置
 正如前面提到的，只有4.4以上的系统才支持透明状态栏设置，5.0以上的系统还支持设置状态栏任意颜色。所以5.0以上的系统设置状态栏的颜色就很简单了，跟着系统给的api走就可以了：
@@ -303,7 +311,7 @@ if (RomUtil.isCompactSystemVersionForImmersion()) {
 
 考虑到上述的一些问题，所以在我们设计的库中，将兼容性判断的相关细节隐藏在库中，使用的时候只需调用相关方法即可。库对外提供了兼容性配置接口，用户可以自由配置，决定是否需要设置状态栏颜色。即实现对库无侵入的修改，即使升级了库，相应的兼容性配置信息也不会丢失。整个库设计的UML图如下所示：
 
-![库设计的UML图]()
+![库设计的UML图](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/WEBRESOURCE0dbd1b6a2c3fa6adecde825e21c2ccdd/10767)
 
 要使用库也非常简单，只需要如下几步：
 
@@ -370,7 +378,7 @@ StatusBarManager.getsInstance().setColor(this, Color.TRANSPARENT);
 
 
 ### 五、那些坑
-+ 颜色设置不成功回滚（oppo不成功的例子）
++ 颜色设置不成功回滚
 
 虽然进行了比较全的兼容性测试，但是还是难保在所以的机子上都能实现颜色设置。这会导致一个问题，就是在这些不支持的手机上，用户使用的视觉和体验都会降低。于是想到的一种方案是先设置颜色，然后在页面打开后，进行应用内截屏（不需要root权限的截屏），取截屏图片状态栏部分的颜色与设置的颜色比对，如果颜色一致说明设置成功，否则就是设置失败。如果设置失败的话，此时可以弹框提示用户进行回滚，将设置失败的影响降到最低。
 选定方案后，开始验证。实际测试的时候，发现此方案是不行的。如在一款oppo的机子上，我们测试是正确实现了状态栏的设置，但是实际的视觉效果并没有变成设置的颜色。初步估计是部分ROM对状态栏进行了定制，在状态栏相同的位置覆盖了一个相同的view，设置的状态栏在view的下方，效果看不到。
@@ -426,6 +434,7 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 activity.getWindow().getDecorView().set(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
 ```
 
++ 主题中设置透明状态栏的各种问题
 
 ### 六、结束
 在Android项目开发过程中，免不了要和系统栏打交道。以上是作者根据平时项目开发经验、并结合网上查阅的资料对状态栏相关设置进行的总结。希望对大家有帮助，欢迎大家交流讨论～
