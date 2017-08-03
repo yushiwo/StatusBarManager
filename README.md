@@ -130,6 +130,10 @@ getWindow().getDecorView().setSystemUiVisibility(
 ```
 运行发现真的可以，显示的内容也没有和状态栏重叠。但是，当我们显示一个toast的时候，发现问题了。
 
+```
+Toast.makeText(MainActivity.this,"toast sth...",Toast.LENGTH_SHORT).show();
+```
+
 ![toast错位的图片](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/87996F0234A7468B94C40DB499250836/10751)
 
 如图所示，Toast打印出来的文字都向上偏移了。原因是因为我们是在Theme中设置的fitsSystemWindows属性，会影响使用了该theme的activity或application的行为，造成依附于Application Window的Window（比如Toast）错位。针对Toast错位的问题，解决方法也简单，就是**使用应用级别的上下文**：
@@ -139,10 +143,9 @@ Toast.makeText(getApplicationContext(),"toast sth...",Toast.LENGTH_SHORT).show()
 ```
 虽说Toast错误问题也是有方法可以解决，但是如果这样使用，不经意间会给我们的应用埋下很多坑。所以我的建议是：不要滥用，只在有需要的地方添加fitsSystemWindows属性。
 
-⚠️此处只是演示了透明状态栏的情况，若设置状态栏其它颜色，
 
 ##### 3.2.2 代码设置
-正如前面提到的，只有4.4以上的系统才支持透明状态栏设置，5.0以上的系统还支持设置状态栏任意颜色。所以5.0以上的系统设置状态栏的颜色就很简单了，跟着系统给的api走就可以了：
+正如前面提到的，只有4.4以上的系统才支持透明状态栏设置，5.0以上的系统支持设置状态栏任意颜色。所以5.0以上的系统设置状态栏的颜色就很简单了，直接调用系统接口就可以了：
 
 ```
 // 设置此flag才可对状态栏进行颜色设置
@@ -153,7 +156,7 @@ activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STAT
 activity.getWindow().setStatusBarColor(color);
 ```
 
-而对于系统是4.4到5.0之前的机子，要设置状态栏的颜色就稍微要繁琐一点了。首先，需要设置页面状态栏为透明；然后，新建一个和状态栏高度一致的view，填充到DecorView上；最后，通过设置这个填充view的颜色，我们就能实现类似对状态栏颜色进行控制的效果了。
+而对于系统是4.4到5.0之间的机子，要设置状态栏的颜色就稍微要繁琐一点了。首先，需要设置页面状态栏为透明；然后，新建一个和状态栏高度一致的view，填充到DecorView上；最后，通过设置这个填充view的颜色，我们就能实现类似对状态栏颜色进行控制的效果了。
 
 
 ```
@@ -284,7 +287,7 @@ private void updateColorViewInt(final ColorViewState state, int sysUiVis, int co
 ### 四、100分状态栏着色实践
 目前网上封装好的状态栏设置工具有不少，用得比较多的是[StatusBarUtil](https://github.com/laobie/StatusBarUtil)，还有已经废弃的[SystemBarTint](https://github.com/jgilfelt/SystemBarTint)。但是有个问题，无论哪个工具库，都不敢保证能够百分百实现状态栏着色的效果。因此，兼容性问题是一直存在的。通过实践分析总结，兼容性问题主要有两类：
 
-+ 部分机子（大多数是4.4~5.0的机子）本身就是不支持状态栏着色效果
++ 部分ROM（大多数是4.4~5.0的机子）本身就是不支持状态栏着色效果
 + 5.0以上的机子，不支持常规操作方式，需要采用特殊方式处理（4.4～5.0的处理方式）
 
 当出现如上所述的问题时，我们的处理方式一般是这样（不侵入修改第三方库）：
@@ -336,7 +339,8 @@ boolean checkCompatiblity();
  */
 boolean checkSpecialRom();
 ```
-两个方法，前一个好理解，就是用来判断是否支持设置状态栏颜色；后一个方法比较特殊。在实际测试过程中，有一款华为手机，搭载EMUI 3.1系统，对应Android系统版本5.1。我们发现用常规直接设置状态栏颜色的方式设置是不生效的，但是用5.0以下系统设置状态栏颜色方式设置就可以生效。所以，次方法就是为了此类特殊ROM而定义的。
+	
+上述的两个方法，checkCompatiblity用来判断是否支持设置状态栏颜色。如果返回false，则不会对状态栏设置颜色。checkSpecialRom在实际测试过程中，有一款华为手机，搭载EMUI 3.1系统，对应Android系统版本5.1。我们发现用常规直接设置状态栏颜色的方式设置是不生效的，但是用5.0以下系统设置状态栏颜色方式设置就可以生效。所以，该方法就是为了此类特殊ROM而定义的。
 
 当然库也提供了一个默认的实现`DefaultStatusBarCompatConfig `，这也是我们在项目开发过程中根据兼容性测试发现的一些问题进行的配置，绝对很有参考价值。如果用户自己实现配置，只需要如下设置：
 
@@ -370,20 +374,31 @@ public class StatusBarCompactConfig implements ICompatConfig {
 StatusBarManager.getsInstance().init(new DefaultStatusBarCompatConfig());
 ```
 
-+ 使用库设置状态栏颜色
++ 在页面中调用库方法设置状态栏颜色
 
 ```
-StatusBarManager.getsInstance().setColor(this, Color.TRANSPARENT);
+StatusBarManager.getsInstance().setColor(MainActivity.this, Color.TRANSPARENT);
 ```
 
 
 ### 五、那些坑
-+ 颜色设置不成功回滚
+#### 5.1 颜色设置不成功回滚
 
-虽然进行了比较全的兼容性测试，但是还是难保在所以的机子上都能实现颜色设置。这会导致一个问题，就是在这些不支持的手机上，用户使用的视觉和体验都会降低。于是想到的一种方案是先设置颜色，然后在页面打开后，进行应用内截屏（不需要root权限的截屏），取截屏图片状态栏部分的颜色与设置的颜色比对，如果颜色一致说明设置成功，否则就是设置失败。如果设置失败的话，此时可以弹框提示用户进行回滚，将设置失败的影响降到最低。
-选定方案后，开始验证。实际测试的时候，发现此方案是不行的。如在一款oppo的机子上，我们测试是正确实现了状态栏的设置，但是实际的视觉效果并没有变成设置的颜色。初步估计是部分ROM对状态栏进行了定制，在状态栏相同的位置覆盖了一个相同的view，设置的状态栏在view的下方，效果看不到。
+因为库不能保证设置状态栏颜色在所有机子上都生效，部分机子我们可以在兼容性测试的时候做到兼容，但是不保证不会有漏网之鱼。这会导致一个问题，就是在这些不支持的手机上，没有达到预期效果，降低了用户体验。这个时候如果能够发现设置颜色失败，然后对这些不支持的机型能够做特殊处理，那就最好了。
 
-+ windowTranslucentStatus与statusBarColor不能同时生效
+于是想到的一种方案:
+
+1. 先设置颜色
+2. 然后在页面打开后，进行应用内截屏，获取当前DecorView的图像截屏（不需要root权限）
+3. 取截屏图片状态栏部分的颜色与设置的颜色比对，如果颜色一致表明设置成功，否则说明设置失败。如果设置失败的话，此时可以弹框提示用户进行操作，将设置失败的影响降到最低。
+
+方案看着还是可行的，那么开始验证。实际测试的时候，发现并不是我们想的那样的。我们测试是正确实现了状态栏的设置，但是实际的视觉效果并没有变成设置的颜色，还是显示的系统的状态栏颜色。如下图所示，红框内是截屏图像，发现与实际屏幕显示的图像状态栏颜色并不一致。
+
+![](http://note.youdao.com/yws/public/resource/a1960d4a5bc124121e27e7f5fc52baf8/xmlnote/WEBRESOURCE76ad42805a9ee83e82cadfaf808445a8/10856)
+
+猜测是有些ROM对状态栏进行了定制，在状态栏相同的位置覆盖了一个相同的view，且这个view的层级比Decoeview高，截图获取的是view下方的DecorView视图。（大家如果有什么好的判断的方式，期待交流～）
+
+#### 5.2 windowTranslucentStatus与statusBarColor不能同时生效
 
 Android4.4的时候，加了个windowTranslucentStatus属性，实现了状态栏导航栏半透明效果，而Android5.0之后以上状态栏、导航栏支持颜色随意设定，所以，5.0之后一般不使用需要使用该属性，而且设置状态栏颜色与windowTranslucentStatus是互斥的。所以，默认情况下android:windowTranslucentStatus是false。也就是说：‘windowTranslucentStatus’和‘windowTranslucentNavigation’设置为true后就再设置‘statusBarColor’和‘navigationBarColor’就没有效果了
 
@@ -404,7 +419,7 @@ boolean show = state.present
 ```
 相应的状态栏或者导航栏的颜色设置就不在生效。不过它并不影响fitSystemWindow的逻辑。
 
-+ 设置SystemUiVisibility属性
+#### 5.3 设置SystemUiVisibility属性
 
 ```
 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -434,10 +449,11 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 activity.getWindow().getDecorView().set(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
 ```
 
-+ 主题中设置透明状态栏的各种问题
 
 ### 六、结束
-在Android项目开发过程中，免不了要和系统栏打交道。以上是作者根据平时项目开发经验、并结合网上查阅的资料对状态栏相关设置进行的总结。希望对大家有帮助，欢迎大家交流讨论～
+在Android项目开发过程中，免不了要和系统栏打交道。以上是作者根据平时项目开发经验、并结合网上查阅的资料对状态栏相关设置进行的总结。希望对大家有帮助，欢迎大家交流讨论～   
+
+项目地址：[https://github.com/yushiwo/StatusBarManager](https://github.com/yushiwo/StatusBarManager)
 
 
 ### 参考文章
